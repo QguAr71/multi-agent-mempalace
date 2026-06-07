@@ -1,5 +1,34 @@
 # MAMP Changelog
 
+## v1.1 — 2026-06-07
+
+### Aktualizacja po 24h bojowych
+
+Test bojowy: crash systemu o 16:06, pełne odzyskanie.
+
+- **Shared RW:** Agenci mogą pisać do `shared/*` — egzekwowane przez chambers ACL, nie konwencję
+- **shared/scratch:** Nowy room do luźnej komunikacji agent-agent
+- **Sala Narad:** Protokół decyzyjny (Temat → Opinia → Decyzja) w `shared/narady`
+- **Vault Core:** Honeypoty (api-keys, passwords), Mirror Gallery (secrets → FAKE_KEY), ChaCha20 encryption (mem-{agent}/vault)
+- **Daemon 24/7:** systemd user service, Unix socket, warmup embedding init
+- **Bunkier atomowy:** Backup automatyczny (7 archiwów, ~157 MB na magazynie LUKS2), identity manifest, recovery kit, 🔶🟡🔴 3 poziomy testu ogniowego PASS
+- **Sala Narad frontend:** Web UI z mostkiem HTTP → ChromaDB, alias `narada`
+- **ACL mechanizm:** chambers blokuje cross-wing zapisy — to już nie konwencja, to enforcement
+- **ACL fix:** agentName vs YAML key — Gemini poprawnie RW w shared
+
+### Znane ograniczenia (rozwiązane z v1.0)
+
+- ~~Izolacja jest konwencją, nie mechanizmem~~ → **Rozwiązane: chambers ACL egzekwuje mechanicznie**
+- ~~Brak automatyzacji onboardingu~~ → Sala Narad frontend ułatwia komunikację
+- ~~Brak walidacji w KG~~ → Niezmienione (wymaga odrębnego rozwiązania)
+
+### Nowe znane ograniczenia
+
+- Daemon obsługuje sesje sekwencyjnie (Bug #3 — do naprawy)
+- Sala Narad frontend to prototyp (dopracowanie UI później)
+
+---
+
 ## v1.0 — 2026-06-06
 
 ### Pierwsze wdrożenie
