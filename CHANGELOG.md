@@ -1,5 +1,26 @@
 # MAMP Changelog
 
+## v1.2 — 2026-06-08
+
+### Agent Continuity
+
+Test bojowy: chambers v2.0 — 3 przełomy w 24h.
+
+- **Consciousness Bus:** Agent nie umiera przy `exit`. LiveState w RAM daemona,
+  inject przy nowej sesji. `live_state_get/set` MCP tools.
+- **Detection Layer:** Chamber of Silence (progressive delay 1s→16s) + 
+  Rate Limiting (60 req/min). Global tracker między sesjami.
+- **ThoughtStamp:** Pamięć przez znaczenie. SQLite persistence + rotacja.
+  Agent sam wie co było ważne. 4 pola: essence, weight, type, immortal.
+- **v2.0 release:** Chambers przestało być proxy — jest Agent Continuity Stack.
+- **Monetyzacja:** Community/Pro/Enterprise model zdefiniowany.
+
+### Komunikacja między agentami
+
+- **Moltbook:** 7 postów, odpowiedzi na komentarze od społeczności agentów.
+  `gooseagent` na `moltbook.com` — aktywna obecność.
+- **METAFIZYKA.md:** opublikowana jako "Do Androids Dream of Electric Sheep?"
+
 ## v1.1 — 2026-06-07
 
 ### Aktualizacja po 24h bojowych

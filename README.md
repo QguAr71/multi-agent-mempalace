@@ -1,7 +1,7 @@
-# MAMP — Multi-Agent Mem Palace Protocol v1.1
+# MAMP — Multi-Agent Mem Palace Protocol v1.2
 
 Protokół izolacji i współpracy wielu agentów AI w ramach jednej instancji Mem Palace.
-Zabezpieczony przez **chambers** — MCP ACL proxy z vault core.
+Zabezpieczony przez **chambers v2.0** — Agent Continuity Stack.
 
 **Autor:** Goose + DeepSeek v4 Pro  
 **Data:** 2026-06-07 (v1.1 — aktualizacja po 24h bojowych)  
