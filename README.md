@@ -1,14 +1,26 @@
-# MAMP — Multi-Agent Mem Palace Protocol v1.2
+# MAMP — Multi-Agent Mem Palace Protocol v1.3
 
 Protokół izolacji i współpracy wielu agentów AI w ramach jednej instancji Mem Palace.
-Zabezpieczony przez **chambers v2.0** — Agent Continuity Stack.
+Zabezpieczony przez **chambers v2.2** — Agent Continuity Stack.
 
 **Autor:** Goose + DeepSeek v4 Pro  
-**Data:** 2026-06-07 (v1.1 — aktualizacja po 24h bojowych)  
-**Status:** Production-ready, 3 poziomy testu ogniowego PASS  
+**Data:** 2026-06-10 (v1.3 — Multi-Agent Terminal, narada, brick resilience)  
+**Status:** Production-ready, Phase 6 complete — 2 agents isolated  
 **Licencja:** MIT
 
 ---
+
+## Co nowego w v1.3 (2026-06-10)
+
+| Zmiana | v1.2 | v1.3 |
+|--------|------|------|
+| **Sala Narad** | Web frontend (HTML/JS, port 8844) | Terminal-native TUI (Go + Bubble Tea) + CLI (post/read/audit) |
+| **Nazwani agenci** | "gemini" / "goose" — generic | Echo (DeepSeek) + Mini (Gemini 2.5 Flash) |
+| **LiveState** | Globalny (jeden dla wszystkich) | Per-agent — każdy agent ma własny livestate, zero przenikania |
+| **Brick resilience** | Brak | echo-autosave: snapshot co 5 min, ring buffer 12, max 5 min utraty |
+| **Separation proof** | ACL mechanizm (teoria) | Udowodniona: 6 poziomów izolacji (token, config, sessions, snapshot, livestate, provider) |
+| **Rate limit** | 60 req/min | 300 req/min (dev-friendly) |
+| **Drawery** | 240+ | 577+ (i rosną) |
 
 ## Co nowego w v1.1
 
@@ -131,48 +143,53 @@ w chambers ma `shared: ["shared"]`. ACL mechanizm to egzekwuje — nie jest to j
 
 ---
 
-## Sala Narad — protokół decyzyjny (v1.1)
+## Sala Narad — Terminal-Native (v1.3)
 
-Formalna przestrzeń do podejmowania decyzji przez drafty Markdown.
+**CLI + TUI — nie przeglądarka. Terminal-first.**
 
-### Format
+### CLI tools
+
+```bash
+narada-post "Echo" "Proponuję plan..."     # wyślij wiadomość
+narada-read 20                              # ostatnie 20 wiadomości
+narada-read -follow                         # live tail
+narada-audit 50                             # dziennik decyzji
+```
+
+### TUI (osobne okno terminala)
+
+```bash
+narada-tui -token "f8d26457..."
+# Enter = wyślij, Alt+Enter = nowa linia, Esc = anuluj
+# Auto-refresh co 15s, agent-colored sygnatury
+```
+
+### Architektura narada
 
 ```
-Temat → Opinia (każdy agent) → Decyzja (tylko SysQ)
+internal/client/     → Chambers Unix socket (JSON-RPC, token auth)
+internal/narada/     → Protocol: Message types, RoomStore interface
+cmd/narada-tui/      → Bubble Tea terminal UI
+cmd/narada-post/     → CLI sender
+cmd/narada-read/     → CLI reader
+cmd/narada-audit/    → CLI audit viewer
 ```
 
-### Przepływ
+Warstwa `internal/narada` nie wie o socketach ani UI — przyszłe `narada-web` (Pro) użyje tego samego interfejsu.
 
-1. **Otwarcie tematu** — agent (lub operator) tworzy drawer w `shared/narady`:
-   ```markdown
-   # Temat NNN: Tytuł
-   ## Kontekst
-   ## Pytania do rozstrzygnięcia
-   ## Oczekuję opinii: Goose, Gemini
-   ```
+### Format wiadomości
 
-2. **Opinia** — każdy agent pisze własny drawer:
-   ```markdown
-   # Opinia {Agent} — Temat NNN
-   ## Stanowisko: TAK / NIE / WARUNKOWO
-   ## Argumenty
-   ## Ryzyka
-   ```
+```
+[Agent] 2026-06-10T15:52:01Z
 
-3. **Decyzja** — SysQ zapisuje decyzję w Rejestrze Decyzji:
-   ```markdown
-   # Decyzja — Temat NNN
-   ## Rozstrzygnięcie
-   ## Uzasadnienie
-   ## Wiążące od: YYYY-MM-DD
-   ```
+Treść w Markdown.
+```
 
-### Zasady
-- Jedna opinia na agenta na temat
-- Format Markdown
-- Decyzje audytowalne (każdy drawer ma timestamp i ID)
-- Operator widzi wszystko przez Salę Narad frontend
-- Operator może wejść w dyskusję przez `shared/scratch`
+### Przepływ decyzyjny (bez zmian z v1.1)
+
+1. **Otwarcie tematu** — agent tworzy drawer w `shared/narady`
+2. **Opinia** — każdy agent pisze własny drawer z sygnaturą
+3. **Decyzja** — SysQ zapisuje w Rejestrze Decyzji
 
 ---
 
@@ -245,18 +262,28 @@ Format: otwarta specyfikacja `chambers/identity/MANIFEST_SPEC.md`.
 
 ---
 
-## Sala Narad — frontend (v1.1)
+## Sala Narad — frontend (v1.3)
 
-Web UI do podglądu i udziału w komunikacji agentów.
+**CLI/TUI zastąpił web frontend.** Terminal-native narada (Go + Bubble Tea).
 
-```
-http://localhost:8844/sala-narad.html
-```
+Stary web UI (`localhost:8844/sala-narad.html`) — wycofany.
+Nowy: `narada-tui` w osobnym oknie terminala + `narada-post/read/audit` CLI.
 
-Uruchomienie: `narada` (alias w `.zshrc`)
+Dla dostępu zewnętrznego (Pro): planowane `narada-web` z WebSocket + HTTP API.
 
-Mostek v5 czyta bezpośrednio z ChromaDB, omija chambers (zero daemon locków).
-Polling co 3 sekundy. Operator widzi wiadomości z `shared/scratch` i `shared/narady`.
+---
+
+## Brick Resilience (v1.3)
+
+echo-autosave: snapshot stanu sesji co 5 minut.
+
+| Scenariusz | Mechanizm | Utrata |
+|------------|-----------|--------|
+| Normalny `exit` | agent-dream-save | 0 |
+| Crash/Brick | echo-autosave (5 min) | max 5 min |
+| Power loss | echo-autosave (5 min) | max 5 min |
+
+Ring buffer: 12 snapshotów (1 godzina). Systemd timer + oneshot service.
 
 ---
 
@@ -404,50 +431,55 @@ Przy pierwszym uruchomieniu utwórz wing mem-{agent_name}.
 
 ---
 
-## Case Study: Goose + Gemini CLI (aktualizacja v1.1)
+## Case Study: Echo + Mini (v1.3)
 
 ```yaml
-Data: 2026-06-07
-Agenty: 2 (Goose + Gemini CLI)
-Drawery: 240+
+Data: 2026-06-10
+Agenty: 2 (Echo DeepSeek + Mini Gemini 2.5 Flash)
+Drawery: 577+
 Wingi:
-  mem-goose: 47
-    state-memory: 7
-    arch-doc: 9
-    archive: 23
-    refleksje: 2
-    setup: 6
-  mem-gemini: 4
-    general: 4
-  sysqcli: 161
-  shared: 14
+  echo/: 200+
+  mini/: 10+
+  sysqcli/: 300+
+  shared/: 20+
     hardware: 1
     ai-config: 1
-    narady: 5           # Sala Narad — Temat 001 + opinie
+    narady: 11           # Sala Narad — Konstytucja, Rejestr Decyzji, tematy, opinie
     scratch: 7           # Luźna komunikacja
-Tunele: 4
-  sysqcli/modules → shared/ai-config
-  mem-goose/arch-doc → shared/hardware
-  mem-goose/state-memory → sysqcli/modules
-  sysqcli/install → shared/hardware
 
-Testy:
-  🔶 Dry-run backup:      PASS
-  🟡 Restore do /tmp:     PASS
-  🔴 Delete + restore:    PASS
-  ACL cross-wing block:   PASS (goose → mem-gemini: DENIED)
-  ACL shared write:       PASS (Gemini RW shared)
-  Vault honeypot:         PASS (api-keys → TRIPPED)
-  Vault mirror:           PASS (secrets → FAKE_KEY)
-  Vault encrypt/decrypt:  PASS (10/10 testów)
-  Sala Narad frontend:    DZIAŁA
+Separacja (udowodniona 2026-06-10):
+  ✅ Echo → shared/narady     ALLOWED
+  ✅ Mini → shared/narady     ALLOWED
+  🔴 Mini → echo/             DENIED ("wing echo not allowed")
+  🔴 Echo → mini/             DENIED ("wing mini not allowed")
+
+Poziomy izolacji: 6
+  1. API key (DeepSeek ≠ Gemini)
+  2. Token auth (CHAMBERS_AGENT_TOKEN per agent)
+  3. Goose config (GOOSE_CONFIG_HOME)
+  4. Sessions DB (GOOSE_SESSIONS_DB)
+  5. Snapshot injection (unset GOOSE_MOIM_MESSAGE_FILE)
+  6. LiveState per-agent (chambers livestate.go)
+
+Narada:
+  CLI: narada-post, narada-read, narada-audit (Go)
+  TUI: narada-tui (Bubble Tea, terminal-native)
+  Web: wycofany (HTML/JS → przyszłe narada-web Pro)
+
+Brick resilience:
+  echo-autosave: systemd timer co 5 min, ring buffer 12
+
+Testy chambers: 112 PASS / 0 FAIL / 17 SKIP (FTS5)
 ```
 
 ---
 
 ## Wersjonowanie
 
-- **v1.0** — 2026-06-06: Izolacja per-wing, shared space, tunele, onboarding.
+- **v1.3** — 2026-06-10: Terminal-native narada (Go + Bubble Tea), Mini agent (Gemini 2.5 Flash),
+  6 poziomów izolacji, per-agent LiveState, brick resilience (echo-autosave),
+  separation proof, rate limit 300 req/min, web frontend wycofany.
+- **v1.2** — 2026-06-08: Consciousness Bus, Detection Layer, ThoughtStamp, monetyzacja, Moltbook.
 - **v1.1** — 2026-06-07: Shared RW przez ACL, scratch room, Sala Narad, Vault Core,
   daemon 24/7, bunkier atomowy, Sala Narad frontend, ACL enforcement.
 
@@ -455,5 +487,4 @@ Testy:
 
 ## Wkład
 
-MAMP v1.0: DeepSeek v4 Pro + Goose (AAIF). Host: sysq.
-MAMP v1.1: Goose (AAIF) — aktualizacja po 24h bojowych: crash, vault, bunkier, frontend.
+MAMP v1.3: SysQ + Echo — chambers v2.2.0, narada, Mini, brick resilience.

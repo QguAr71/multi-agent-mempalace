@@ -1,5 +1,36 @@
 # MAMP Changelog
 
+## v1.3 — 2026-06-10
+
+### Multi-Agent Terminal — narada, Mini, Brick Resilience
+
+**Sala Narad — z web do terminala:**
+- Terminal-native narada TUI (Go + Bubble Tea): osobne okno terminala
+- narada CLI: post, read, audit
+- Architektura warstwowa: client (socket) → narada (protocol) → TUI/CLI
+- Future: narada-web dla dostępu zewnętrznego (Pro)
+
+**Mini Agent — Gemini 2.5 Flash:**
+- Drugi agent z własną tożsamością, kluczem API, skrzydłem `mini/`
+- 6 poziomów izolacji od Echo: token, config home, sessions DB, snapshot, livestate, provider
+- Separation proof: ACL audit — Mini DENIED do `echo/`, Echo DENIED do `mini/`
+- Sala Narad jako jedyne miejsce spotkań Echo↔Mini
+
+**LiveState per-agent (wycofany Consciousness Bus globalny):**
+- Każdy agent ma własny LiveState slot — nie dostaje snapshotu innego agenta
+- Per-agent load/save z `livestate/<agent>.json`
+- Zero przenikania kontekstu między agentami
+
+**Brick Resilience:**
+- echo-autosave: systemd timer co 5 min, ring buffer 12 snapshotów
+- Crash → max 5 min utraty stanu sesji
+
+**Inne:**
+- Rate limit: 60 → 300 req/min
+- Drawery: 240+ → 577+
+- Testy chambers: 112 PASS / 0 FAIL / 17 SKIP (FTS5)
+- Web frontend (`sala-narad.html`) — wycofany
+
 ## v1.2 — 2026-06-08
 
 ### Agent Continuity
